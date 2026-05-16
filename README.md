@@ -1,11 +1,27 @@
 
-  # Resume Template
+# ResumeMatch Studio
 
-  This is a code bundle for Resume Template. The original project is available at https://www.figma.com/design/XDsUQ8XOp8JIAwtRB2QHdo/Resume-Template.
+A lightweight resume editor with module management, local draft saving, print/PDF export, and formatting helpers for work experience content.
 
-  ## Running the code
+Live site: https://resumematch-studio.vercel.app
 
-  Run `npm i` to install the dependencies.
+## Development
 
-  Run `npm run dev` to start the development server.
+Install dependencies:
+
+```bash
+npm i
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+```
   
