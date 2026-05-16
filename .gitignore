@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vercel/
+
+*.log
+dev-server.*.log
+
+resume-page*.png
+.edge-profile-*/
+
+src/imports/
