@@ -9,3 +9,5 @@ resume-page*.png
 .edge-profile-*/
 
 src/imports/
+
+.vercel
