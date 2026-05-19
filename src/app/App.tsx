@@ -1,5 +1,5 @@
-import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Download, Eye, EyeOff, GripVertical, Plus, Save, Trash2, Upload } from 'lucide-react';
+﻿import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { ArrowDown, ArrowUp, Download, Eye, EyeOff, FileDown, FileUp, GripVertical, Plus, Save, Trash2, Upload } from 'lucide-react';
 
 type SectionKey = 'summary' | 'experience' | 'education' | 'skills';
 
@@ -20,14 +20,57 @@ const defaultSections: SectionSetting[] = [
 
 const draftStorageKey = 'resume-template-draft';
 
+const defaultResumeData: ResumeData = {
+  personalInfo: {
+    name: '你的姓名',
+    phone: '138****0000',
+    email: 'you@example.com',
+    yearsOfExperience: '3年工作经验',
+    targetPosition: '目标岗位 / 岗位方向',
+    photoUrl: ''
+  },
+  summary: '这里填写个人总结。建议用 2-4 句话说明你的核心经验、擅长方向和关键成果。可以选中文字后使用上方按钮添加 **加粗** 或 {blue:**重点强调**}。',
+  experience: [
+    {
+      id: '1',
+      company: '示例公司',
+      position: '示例岗位',
+      period: '2024.01 - 至今',
+      tags: ['核心项目', '数据增长', '跨团队协作'],
+      responsibilities: [
+        '负责某核心模块从需求分析到上线迭代，协调设计、研发、运营完成交付。',
+        '通过用户反馈和数据分析定位关键问题，推动方案优化，使核心指标提升 {blue:**20%**}。',
+        '沉淀项目流程和复盘文档，提高团队后续协作效率。'
+      ]
+    }
+  ],
+  education: [
+    {
+      id: '1',
+      school: '示例大学',
+      major: '本科',
+      degree: '示例专业',
+      period: '2019.09 - 2023.06'
+    }
+  ],
+  skills: ['用户研究', '数据分析', '项目管理', 'Figma', 'SQL']
+};
+
+interface ResumeDraftFile {
+  version: 1;
+  exportedAt: string;
+  resumeData: ResumeData;
+  sections: SectionSetting[];
+}
+
 const emphasisClassMap = {
-  blue: 'font-medium text-blue-700',
+  blue: 'font-medium text-[#1f5f99]',
   gray: 'text-neutral-500',
-  red: 'font-medium text-red-700',
+  red: 'font-medium text-[#b42318]',
 } as const;
 
 function renderFormattedText(text: string) {
-  const pattern = /(\*\*([^*]+)\*\*)|\{(blue|gray|red):([^}]+)\}/g;
+  const pattern = /(\*\*([\s\S]+?)\*\*)|\{(blue|gray|red):([\s\S]+?)\}/g;
   const parts: ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -39,15 +82,15 @@ function renderFormattedText(text: string) {
 
     if (match[2]) {
       parts.push(
-        <strong key={match.index} className="font-semibold text-neutral-900">
-          {match[2]}
+        <strong key={match.index} className="font-semibold">
+          {renderFormattedText(match[2])}
         </strong>
       );
     } else if (match[3] && match[4]) {
       const color = match[3] as keyof typeof emphasisClassMap;
       parts.push(
         <span key={match.index} className={emphasisClassMap[color]}>
-          {match[4]}
+          {renderFormattedText(match[4])}
         </span>
       );
     }
@@ -91,63 +134,13 @@ interface ResumeData {
 }
 
 export default function App() {
-  const [resumeData, setResumeData] = useState<ResumeData>({
-    personalInfo: {
-      name: '张三',
-      phone: '132****1234',
-      email: 'zhang@163.com',
-      yearsOfExperience: '2年工作经验',
-      targetPosition: 'C端产品经理 / AI应用产品经理',
-      photoUrl: ''
-    },
-    summary: '拥有2年产品经理经验，专注于C端产品和AI应用领域。擅长用户体验设计、数据分析和跨部门协作。曾负责多个核心产品的全流程管理，在用户增长、内容安全、AI功能升级等方面有丰富经验。熟练使用数据驱动产品决策，善于将用户需求转化为产品方案。',
-    experience: [
-      {
-        id: '1',
-        company: '字节跳动',
-        position: '网页产品经理',
-        period: '2024.07 - 至今',
-        tags: ['经验', '用户体验', 'AI技能', '内容安全'],
-        responsibilities: [
-          '网页游戏传播',
-          '游戏建设：针对双产网站访问场景下，设计"分页浏览"机制。浏览新闻网站，在浏览器规则同时，优化网页阅读PV，内反弹下降8%，沉浸浏览时长提升23%',
-          '体验优化：针对网页产品优化浏览体验，设计多项交互功能，成功减少用户反馈问题，提升用户满意度',
-          'AI 功能升级',
-          '网页AI翻译：针对外文网站场景，基于深度学习模型技术提供翻译能力，日均服务于万级用户。优化用户体验，提升翻译准确率',
-          '网页智能助手：在AI战略背景下，基于场景需求开发智能助手功能。实现内容智能推荐，上线后日均使用量显著提升',
-          '安全体系搭建',
-          '安全检测规则：基于内容检测技术，整合多项检测能力，通过优化响应策略，强化用户对安全能力的感知，打造安全心智',
-          '网页安全防护：跨部门协作，快速引入安全技术，提升网页安全能力，降低风险事件发生率'
-        ]
-      },
-      {
-        id: '2',
-        company: '某美妆公司',
-        position: 'C端产品经理',
-        period: '2023.05 - 2024.01',
-        tags: ['经验', '目标', '营销产品'],
-        responsibilities: [
-          '工作概述：负责护肤类产品从需求采集到上市的全流程管理',
-          '核心产品设计：针对 25-35 岁女性目标用户群体，完成10+ SKU产品的全流程开发。协调工业设计、研发打样、供应链生产、合规备案等5+部门，确保产品从概念定义到量产上市的按时交付',
-          '工艺成本控制：拆解产品BOM，进行成本控制。在保证产品视觉效果和材质的前提下，通过工艺优化，平衡性能与毛利，降低成本15%'
-        ]
-      }
-    ],
-    education: [
-      {
-        id: '1',
-        school: '中南财经政法大学',
-        major: '本科',
-        degree: '视觉传达设计',
-        period: '2019.09-2023.06'
-      }
-    ],
-    skills: ['产品设计', '用户研究', '数据分析', 'AI应用', 'Axure', 'Figma', 'SQL', 'Python', '项目管理', '跨部门协作']
-  });
+  const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
 
   const [isEditing, setIsEditing] = useState(false);
   const [sections, setSections] = useState<SectionSetting[]>(defaultSections);
   const [draftMessage, setDraftMessage] = useState('');
+  const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const jsonFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const name = resumeData.personalInfo.name.trim() || '我的';
@@ -314,6 +307,22 @@ export default function App() {
     }));
   };
 
+  const moveExperience = (id: string, direction: -1 | 1) => {
+    setResumeData(prev => {
+      const currentIndex = prev.experience.findIndex(exp => exp.id === id);
+      const nextIndex = currentIndex + direction;
+
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= prev.experience.length) {
+        return prev;
+      }
+
+      const experience = [...prev.experience];
+      [experience[currentIndex], experience[nextIndex]] = [experience[nextIndex], experience[currentIndex]];
+
+      return { ...prev, experience };
+    });
+  };
+
   const addTag = (id: string) => {
     setResumeData(prev => ({
       ...prev,
@@ -432,6 +441,140 @@ export default function App() {
     setDraftMessage(`已暂存：${new Date(savedAt).toLocaleString()}`);
   };
 
+  const exportJson = () => {
+    const exportedAt = new Date().toISOString();
+    const draft: ResumeDraftFile = {
+      version: 1,
+      exportedAt,
+      resumeData,
+      sections,
+    };
+    const filenameName = resumeData.personalInfo.name.trim() || 'resume';
+    const blob = new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `${filenameName}-resume-draft.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    setDraftMessage(`已导出 JSON：${new Date(exportedAt).toLocaleString()}`);
+  };
+
+  const importJson = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const draft = JSON.parse(String(reader.result)) as Partial<ResumeDraftFile>;
+
+        if (!draft.resumeData || !draft.sections) {
+          setDraftMessage('导入失败：JSON 文件格式不正确');
+          return;
+        }
+
+        setResumeData(draft.resumeData);
+        setSections(draft.sections);
+        window.localStorage.setItem(
+          draftStorageKey,
+          JSON.stringify({
+            resumeData: draft.resumeData,
+            sections: draft.sections,
+            savedAt: new Date().toISOString(),
+          })
+        );
+        setDraftMessage(`已导入 JSON：${file.name}`);
+      } catch {
+        setDraftMessage('导入失败：无法解析 JSON 文件');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  };
+
+  const applyFormat = (
+    textareaKey: string,
+    value: string,
+    updateValue: (nextValue: string) => void,
+    before: string,
+    after: string
+  ) => {
+    const textarea = textareaRefs.current[textareaKey];
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? value.length;
+    const selectedText = value.slice(start, end) || '重点内容';
+    const nextValue = `${value.slice(0, start)}${before}${selectedText}${after}${value.slice(end)}`;
+
+    updateValue(nextValue);
+
+    window.setTimeout(() => {
+      const nextTextarea = textareaRefs.current[textareaKey];
+      if (!nextTextarea) {
+        return;
+      }
+
+      const selectionStart = start + before.length;
+      const selectionEnd = selectionStart + selectedText.length;
+      nextTextarea.focus();
+      nextTextarea.setSelectionRange(selectionStart, selectionEnd);
+    });
+  };
+
+  const renderFormatToolbar = (
+    textareaKey: string,
+    value: string,
+    updateValue: (nextValue: string) => void
+  ) => {
+    const buttonClass = 'rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700 hover:border-[#1f5f99] hover:text-[#1f5f99]';
+
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => applyFormat(textareaKey, value, updateValue, '**', '**')}
+        >
+          B
+        </button>
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => applyFormat(textareaKey, value, updateValue, '{blue:', '}')}
+        >
+          蓝色
+        </button>
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => applyFormat(textareaKey, value, updateValue, '{blue:**', '**}')}
+        >
+          蓝色+B
+        </button>
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => applyFormat(textareaKey, value, updateValue, '{gray:', '}')}
+        >
+          灰色
+        </button>
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => applyFormat(textareaKey, value, updateValue, '{red:', '}')}
+        >
+          红色
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50 p-4 md:p-8">
       <div className="max-w-[21cm] mx-auto">
@@ -441,7 +584,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsEditing(!isEditing)}
-              className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="rounded-md bg-[#1f5f99] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#184d7d]"
             >
               {isEditing ? '预览模式' : '编辑模式'}
             </button>
@@ -453,6 +596,29 @@ export default function App() {
               <Save className="w-4 h-4" />
               暂存草稿
             </button>
+            <button
+              type="button"
+              onClick={exportJson}
+              className="flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:border-[#1f5f99] hover:text-[#1f5f99]"
+            >
+              <FileDown className="w-4 h-4" />
+              导出 JSON
+            </button>
+            <button
+              type="button"
+              onClick={() => jsonFileInputRef.current?.click()}
+              className="flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:border-[#1f5f99] hover:text-[#1f5f99]"
+            >
+              <FileUp className="w-4 h-4" />
+              导入 JSON
+            </button>
+            <input
+              ref={jsonFileInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={importJson}
+              className="hidden"
+            />
             <button
               type="button"
               onClick={handlePrint}
@@ -490,7 +656,7 @@ export default function App() {
                     type="text"
                     value={section.title}
                     onChange={(e) => updateSection(section.key, { title: e.target.value })}
-                    className="min-w-0 flex-1 rounded border border-neutral-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+                    className="min-w-0 flex-1 rounded border border-neutral-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-[#1f5f99]"
                     aria-label={`${section.title}模块名称`}
                   />
                   <button
@@ -536,28 +702,28 @@ export default function App() {
                     type="text"
                     value={resumeData.personalInfo.name}
                     onChange={(e) => updatePersonalInfo('name', e.target.value)}
-                    className="text-2xl font-bold p-1 border-b-2 border-neutral-300 focus:border-blue-500 focus:outline-none w-48"
+                    className="text-2xl font-bold p-1 border-b-2 border-neutral-300 focus:border-[#1f5f99] focus:outline-none w-48"
                   />
                   <div className="flex gap-4 text-sm">
                     <input
                       type="text"
                       value={resumeData.personalInfo.phone}
                       onChange={(e) => updatePersonalInfo('phone', e.target.value)}
-                      className="p-1 border-b border-neutral-300 focus:border-blue-500 focus:outline-none w-32"
+                      className="p-1 border-b border-neutral-300 focus:border-[#1f5f99] focus:outline-none w-32"
                       placeholder="电话"
                     />
                     <input
                       type="email"
                       value={resumeData.personalInfo.email}
                       onChange={(e) => updatePersonalInfo('email', e.target.value)}
-                      className="p-1 border-b border-neutral-300 focus:border-blue-500 focus:outline-none w-40"
+                      className="p-1 border-b border-neutral-300 focus:border-[#1f5f99] focus:outline-none w-40"
                       placeholder="邮箱"
                     />
                     <input
                       type="text"
                       value={resumeData.personalInfo.yearsOfExperience}
                       onChange={(e) => updatePersonalInfo('yearsOfExperience', e.target.value)}
-                      className="p-1 border-b border-neutral-300 focus:border-blue-500 focus:outline-none w-32"
+                      className="p-1 border-b border-neutral-300 focus:border-[#1f5f99] focus:outline-none w-32"
                       placeholder="工作年限"
                     />
                   </div>
@@ -565,7 +731,7 @@ export default function App() {
                     type="text"
                     value={resumeData.personalInfo.targetPosition}
                     onChange={(e) => updatePersonalInfo('targetPosition', e.target.value)}
-                    className="text-sm p-1 border-b border-neutral-300 focus:border-blue-500 focus:outline-none w-full"
+                    className="text-sm p-1 border-b border-neutral-300 focus:border-[#1f5f99] focus:outline-none w-full"
                     placeholder="求职意向"
                   />
                 </div>
@@ -636,14 +802,27 @@ export default function App() {
           >
             {renderSectionHeader('summary')}
             {isEditing ? (
-              <textarea
-                value={resumeData.summary}
-                onChange={(e) => updateSummary(e.target.value)}
-                className="w-full p-3 border-2 border-neutral-300 rounded focus:border-blue-500 focus:outline-none min-h-24 text-sm"
-                placeholder="请输入个人总结..."
-              />
+              <div>
+                <p className="mb-2 px-1 text-xs text-neutral-500">
+                  选中文字后点按钮即可套用格式，也可手动输入：**加粗**、{'{blue:蓝色}'}、{'{blue:**蓝色加粗**}'}
+                </p>
+                <div className="mb-2 px-1">
+                  {renderFormatToolbar('summary', resumeData.summary, updateSummary)}
+                </div>
+                <textarea
+                  ref={(element) => {
+                    textareaRefs.current.summary = element;
+                  }}
+                  value={resumeData.summary}
+                  onChange={(e) => updateSummary(e.target.value)}
+                  className="w-full p-3 border-2 border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none min-h-24 text-sm"
+                  placeholder="请输入个人总结..."
+                />
+              </div>
             ) : (
-              <p className="text-sm text-black leading-relaxed px-4">{resumeData.summary}</p>
+              <p className="whitespace-pre-wrap break-words px-4 text-sm leading-relaxed text-black">
+                {renderFormattedText(resumeData.summary)}
+              </p>
             )}
           </div>
 
@@ -661,14 +840,14 @@ export default function App() {
                 <button
                   type="button"
                   onClick={addExperience}
-                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                  className="flex items-center gap-1 text-sm text-[#1f5f99] hover:text-[#184d7d]"
                 >
                   <Plus className="w-4 h-4" />
                   添加
                 </button>
               )
             )}
-            {resumeData.experience.map((exp) => (
+            {resumeData.experience.map((exp, expIndex) => (
               <div key={exp.id} className="mb-5 px-4">
                 {isEditing ? (
                   <div className="space-y-3 p-4 border border-neutral-200 rounded bg-neutral-50">
@@ -679,14 +858,14 @@ export default function App() {
                             type="text"
                             value={exp.position}
                             onChange={(e) => updateExperience(exp.id, 'position', e.target.value)}
-                            className="flex-1 p-2 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none bg-white"
+                            className="flex-1 p-2 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none bg-white"
                             placeholder="职位"
                           />
                           <input
                             type="text"
                             value={exp.period}
                             onChange={(e) => updateExperience(exp.id, 'period', e.target.value)}
-                            className="w-44 p-2 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none bg-white"
+                            className="w-44 p-2 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none bg-white"
                             placeholder="时间"
                           />
                         </div>
@@ -694,7 +873,7 @@ export default function App() {
                           type="text"
                           value={exp.company}
                           onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
-                          className="w-full p-2 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none bg-white"
+                          className="w-full p-2 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none bg-white"
                           placeholder="公司"
                         />
                       </div>
@@ -705,6 +884,26 @@ export default function App() {
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
+                      <div className="mt-1 flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => moveExperience(exp.id, -1)}
+                          disabled={expIndex === 0}
+                          className="rounded p-1 text-neutral-500 hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-30"
+                          aria-label="上移公司经历"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveExperience(exp.id, 1)}
+                          disabled={expIndex === resumeData.experience.length - 1}
+                          className="rounded p-1 text-neutral-500 hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-30"
+                          aria-label="下移公司经历"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* 标签编辑 */}
@@ -716,7 +915,7 @@ export default function App() {
                               type="text"
                               value={tag}
                               onChange={(e) => updateTag(exp.id, tagIndex, e.target.value)}
-                              className="px-2 py-1 text-xs border border-blue-300 rounded bg-white focus:border-blue-500 focus:outline-none w-20"
+                              className="px-2 py-1 text-xs border border-[#b7d1ea] rounded bg-white focus:border-[#1f5f99] focus:outline-none w-20"
                             />
                             <button
                               type="button"
@@ -730,7 +929,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => addTag(exp.id)}
-                          className="px-2 py-1 text-xs border border-dashed border-neutral-400 rounded hover:border-blue-500 text-neutral-600 hover:text-blue-600"
+                          className="px-2 py-1 text-xs border border-dashed border-neutral-400 rounded hover:border-[#1f5f99] text-neutral-600 hover:text-[#1f5f99]"
                         >
                           + 标签
                         </button>
@@ -740,16 +939,26 @@ export default function App() {
                     {/* 职责编辑 */}
                     <div className="space-y-2">
                       <p className="text-xs text-neutral-500">
-                        支持轻量格式：**加粗**、{'{blue:蓝色}'}、{'{gray:灰色}'}、{'{red:红色}'}
+                        选中文字后点按钮即可套用格式。
                       </p>
                       {exp.responsibilities.map((resp, respIndex) => (
                         <div key={respIndex} className="flex gap-2">
-                          <textarea
-                            value={resp}
-                            onChange={(e) => updateResponsibility(exp.id, respIndex, e.target.value)}
-                            className="flex-1 p-2 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none bg-white resize-none"
-                            rows={2}
-                          />
+                          <div className="flex-1 space-y-1.5">
+                            {renderFormatToolbar(
+                              `responsibility-${exp.id}-${respIndex}`,
+                              resp,
+                              (nextValue) => updateResponsibility(exp.id, respIndex, nextValue)
+                            )}
+                            <textarea
+                              ref={(element) => {
+                                textareaRefs.current[`responsibility-${exp.id}-${respIndex}`] = element;
+                              }}
+                              value={resp}
+                              onChange={(e) => updateResponsibility(exp.id, respIndex, e.target.value)}
+                              className="w-full resize-none rounded border border-neutral-300 bg-white p-2 text-sm focus:border-[#1f5f99] focus:outline-none"
+                              rows={2}
+                            />
+                          </div>
                           <button
                             type="button"
                             onClick={() => deleteResponsibility(exp.id, respIndex)}
@@ -782,7 +991,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => addResponsibility(exp.id)}
-                        className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                        className="text-[#1f5f99] hover:text-[#184d7d] text-sm flex items-center gap-1"
                       >
                         <Plus className="w-4 h-4" />
                         添加职责
@@ -799,7 +1008,7 @@ export default function App() {
                           {exp.tags.map((tag, tagIndex) => (
                             <span
                               key={tagIndex}
-                              className="whitespace-nowrap rounded bg-blue-500 px-2 py-0.5 text-sm leading-5 text-white"
+                              className="whitespace-nowrap rounded border border-[#b7d1ea] bg-[#e8f2fb] px-2 py-0.5 text-sm leading-5 text-[#1f5f99]"
                             >
                               {tag}
                             </span>
@@ -810,7 +1019,7 @@ export default function App() {
                     </div>
                     <div className="text-sm text-black space-y-1 ml-2">
                       {exp.responsibilities.map((resp, respIndex) => (
-                        <div key={respIndex} className="leading-relaxed">
+                        <div key={respIndex} className="whitespace-pre-wrap break-words leading-relaxed">
                           {renderFormattedText(resp)}
                         </div>
                       ))}
@@ -835,7 +1044,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={addEducation}
-                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                  className="flex items-center gap-1 text-sm text-[#1f5f99] hover:text-[#184d7d]"
                 >
                   <Plus className="w-4 h-4" />
                   添加
@@ -851,14 +1060,14 @@ export default function App() {
                         type="text"
                         value={edu.school}
                         onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
-                        className="flex-1 p-1.5 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none"
+                        className="flex-1 p-1.5 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none"
                         placeholder="学校"
                       />
                       <input
                         type="text"
                         value={edu.period}
                         onChange={(e) => updateEducation(edu.id, 'period', e.target.value)}
-                        className="w-40 p-1.5 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none"
+                        className="w-40 p-1.5 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none"
                         placeholder="时间"
                       />
                       <button
@@ -874,14 +1083,14 @@ export default function App() {
                         type="text"
                         value={edu.major}
                         onChange={(e) => updateEducation(edu.id, 'major', e.target.value)}
-                        className="w-24 p-1.5 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none"
+                        className="w-24 p-1.5 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none"
                         placeholder="学历"
                       />
                       <input
                         type="text"
                         value={edu.degree}
                         onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                        className="flex-1 p-1.5 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none"
+                        className="flex-1 p-1.5 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none"
                         placeholder="专业"
                       />
                     </div>
@@ -913,7 +1122,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={addSkill}
-                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                  className="flex items-center gap-1 text-sm text-[#1f5f99] hover:text-[#184d7d]"
                 >
                   <Plus className="w-4 h-4" />
                   添加
@@ -929,7 +1138,7 @@ export default function App() {
                         type="text"
                         value={skill}
                         onChange={(e) => updateSkill(index, e.target.value)}
-                        className="px-3 py-1.5 text-sm border border-neutral-300 rounded focus:border-blue-500 focus:outline-none"
+                        className="px-3 py-1.5 text-sm border border-neutral-300 rounded focus:border-[#1f5f99] focus:outline-none"
                       />
                       <button
                         type="button"
@@ -983,3 +1192,5 @@ export default function App() {
     </div>
   );
 }
+
+
